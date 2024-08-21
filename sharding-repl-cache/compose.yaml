@@ -1,0 +1,322 @@
+version: '3'
+services:
+  sharding-repl-cache:
+    container_name: sharding-repl-cache
+    build:
+      context: api_app
+      dockerfile: Dockerfile
+    image: kazhem/pymongo_api:1.0.0
+    depends_on:
+      - mongos_router
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    env_file: .env
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.2
+
+  configSrv:
+    image: mongo:latest
+    container_name: configSrv 
+    restart: always
+    env_file: .env
+    ports:
+      - ${MONGO_CFG_SERVER_PORT}:${MONGO_CFG_SERVER_PORT}
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.10
+    volumes:
+      - config-data:/data/db
+    command:
+      [
+        "--configsvr",
+        "--replSet",
+        "config_server",
+        "--bind_ip_all",
+        "--port",
+        "${MONGO_CFG_SERVER_PORT}"
+      ] 
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  shard1-1:
+    image: mongo:latest
+    container_name: shard1-1
+    restart: always
+    env_file: .env
+    ports:
+      - ${MONGO_SHARD11_PORT}:${MONGO_SHARD11_PORT}
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.9
+    volumes:
+      - shard11-data:/data/db
+    command:
+      [
+        "--shardsvr",
+        "--replSet",
+        "shard1",
+        "--bind_ip_all",
+        "--port",
+        "${MONGO_SHARD11_PORT}"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  shard1-2:
+    image: mongo:latest
+    container_name: shard1-2
+    restart: always
+    env_file: .env
+    ports:
+      - ${MONGO_SHARD12_PORT}:${MONGO_SHARD12_PORT}
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.8
+    volumes:
+      - shard12-data:/data/db
+    command:
+      [
+        "--shardsvr",
+        "--replSet",
+        "shard1",
+        "--bind_ip_all",
+        "--port",
+        "${MONGO_SHARD12_PORT}"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  shard1-3:
+    image: mongo:latest
+    container_name: shard1-3
+    restart: always
+    env_file: .env
+    ports:
+      - ${MONGO_SHARD13_PORT}:${MONGO_SHARD13_PORT}
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.7
+    volumes:
+      - shard13-data:/data/db
+    command:
+      [
+        "--shardsvr",
+        "--replSet",
+        "shard1",
+        "--bind_ip_all",
+        "--port",
+        "${MONGO_SHARD13_PORT}"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  shard2-1:
+    image: mongo:latest
+    container_name: shard2-1
+    restart: always
+    env_file: .env
+    ports:
+      - ${MONGO_SHARD21_PORT}:${MONGO_SHARD21_PORT}
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.6
+    volumes:
+      - shard21-data:/data/db
+    command:
+      [
+        "--shardsvr",
+        "--replSet",
+        "shard2",
+        "--bind_ip_all",
+        "--port",
+        "${MONGO_SHARD21_PORT}"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  shard2-2:
+    image: mongo:latest
+    container_name: shard2-2
+    restart: always
+    env_file: .env
+    ports:
+      - ${MONGO_SHARD22_PORT}:${MONGO_SHARD22_PORT}
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.5
+    volumes:
+      - shard22-data:/data/db
+    command:
+      [
+        "--shardsvr",
+        "--replSet",
+        "shard2",
+        "--bind_ip_all",
+        "--port",
+        "${MONGO_SHARD22_PORT}"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  shard2-3:
+    image: mongo:latest
+    container_name: shard2-3
+    restart: always
+    env_file: .env
+    ports:
+      - ${MONGO_SHARD23_PORT}:${MONGO_SHARD23_PORT}
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.4
+    volumes:
+      - shard23-data:/data/db
+    command:
+      [
+        "--shardsvr",
+        "--replSet",
+        "shard2",
+        "--bind_ip_all",
+        "--port",
+        "${MONGO_SHARD23_PORT}"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  mongos_router:
+    image: mongo:latest
+    container_name: mongos_router
+    restart: always
+    env_file: .env
+    ports:
+      - ${MONGO_ROUTER_PORT}:${MONGO_ROUTER_PORT}
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.3
+    command:
+      [
+        "mongos",
+        "--configdb",
+        "config_server/configSrv:${MONGO_CFG_SERVER_PORT}",
+        "--bind_ip_all",
+        "--port",
+        "${MONGO_ROUTER_PORT}"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  redis_1:
+    image: "redis:latest"
+    container_name: redis_1
+    ports:
+      - "6379"
+    volumes:
+      - redis_1_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.11
+
+  redis_2:
+    image: "redis:latest"
+    container_name: redis_2
+    ports:
+      - "6379"
+    volumes:
+      - redis_2_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.12
+
+  redis_3:
+    image: "redis:latest"
+    container_name: redis_3
+    ports:
+      - "6379"
+    volumes:
+      - redis_3_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.13
+
+  redis_4:
+    image: "redis:latest"
+    container_name: redis_4
+    ports:
+      - "6379"
+    volumes:
+      - redis_4_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.14
+
+  redis_5:
+    image: "redis:latest"
+    container_name: redis_5
+    ports:
+      - "6379"
+    volumes:
+      - redis_5_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.15
+
+  redis_6:
+    image: "redis:latest"
+    container_name: redis_6
+    ports:
+      - "6379"
+    volumes:
+      - redis_6_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.16
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 173.17.0.0/16
+
+volumes:
+  config-data:
+  shard11-data:
+  shard12-data:
+  shard13-data:
+  shard21-data:
+  shard22-data:
+  shard23-data:
+  redis_1_data: {}
+  redis_2_data: {}
+  redis_3_data: {}
+  redis_4_data: {}
+  redis_5_data: {}
+  redis_6_data: {}
